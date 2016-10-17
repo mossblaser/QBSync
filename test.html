@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+		<style>
+			body {
+				background-color: black;
+				color: white;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>QBSync</h1>
+		<p>This is a rather dubious prototype synced video playback system in the
+		spirit of 'unisync'. To play and pause use the 'space-bar' and not the
+		on screen buttons.</p>
+		<video id="video" preload="auto" controls width="500">
+			<source
+				src="https://i.bbcredux.com/asset/media/6331393397944785068/43545-1476812205-181df88dfa9bff384b5839a66e788e3b/h264_mp4_lo_v1.0/20160917-210000-new-beck-steinar-h264sm.mp4"
+				type="video/mp4">
+		</video>
+		<br>
+		<a href="#" id="play-btn">Play</a><br>
+		<a href="#" id="pause-btn">Pause</a><br>
+		<a href="#" id="seekp-btn">Seek +30</a><br>
+		<a href="#" id="seekm-btn">Seek -30</a><br>
+		<br>
+		Ready: <span id="ready-status">Loading...</span><br>
+		Round-trip time to server: <span id="round-trip">UNKNOWN</span><br>
+		Client/server clock delta: <span id="clock-delta">UNKNOWN</span><br>
+		<code style="white-space: pre-wrap" id="raw-response"></code>
+		
+		<script type="text/javascript">
+			// Interval between pings to the server
+			var POLL_INTERVAL = 500;
+			
+			// Unique ID for this client
+			var CLIENT_ID = "" + Math.random();
+			
+			// Timer ID of callback used to change playback state
+			var setPlayPauseStateTimerId = null;
+			
+			// The current state of the client
+			var clientState = {
+				// Current play-head position
+				video_time: 0.0,
+				
+				// Could the video play right now?
+				ready: false,
+				
+				// How long is the round-trip time to the server
+				round_trip_time: 100,
+				
+				// Time between regular server polls
+				poll_interval: POLL_INTERVAL/1000.0,
+				
+				// Last state change the client is aware of
+				state_change_time: -1,
+			};
+			
+			var serverState = {};
+			
+			// Poll the server, optionally attaching the specified command to the
+			// poll.
+			function pollServer(command) {
+				// XXX: Should be refactored somewhere more sensible
+				clientState.video_time = video.currentTime;
+				
+				$.ajax({
+					type: "POST",
+					url: "/test.php",
+					data: {
+						client_id: CLIENT_ID,
+						client_state: JSON.stringify(clientState),
+						command: JSON.stringify(command),
+					},
+					dataType: "json",
+					success: function() {
+						var sendTime = Date.now()/1000.0;
+						return function(data) {
+							// Compute round-trip time
+							var roundTrip = (Date.now()/1000.0) - sendTime;
+							
+							// Callback!
+							return onServerMessage(data, roundTrip);
+						}
+					}()
+				});
+			}
+			
+			// Called whenever the server responds to a poll or command
+			function onServerMessage(newServerState, roundTrip) {
+				// Update server state
+				var oldServerState = serverState;
+				serverState = newServerState;
+				
+				var clientTime = Date.now()/1000.0;
+				var serverTime = serverState.time + (roundTrip/2.0);
+				var serverClientDelta = serverTime - clientTime;
+				
+				// Update debug UI
+				$("#round-trip").text(roundTrip);
+				$("#clock-delta").text(serverClientDelta);
+				$("#raw-response").text(JSON.stringify(newServerState, null, "  "));
+				
+				
+				// Inform server of round trip time on next poll
+				clientState.round_trip_time = roundTrip;
+				
+				if (serverState.state_change_time != oldServerState.state_change_time) {
+					// Play or pause at the desired time set by the server
+					var setPlayPauseState = function () {
+						setPlayPauseStateTimerId = null;
+						if (serverState.video_playing) {
+							console.log("play");
+							video.play();
+						} else {
+							console.log("pause");
+							video.pause();
+						}
+					};
+					var delta = serverState.state_change_time - serverTime;
+					if (setPlayPauseStateTimerId !== null) {
+						window.clearTimeout(setPlayPauseStateTimerId);
+					}
+					if (delta <= 0) {
+						console.log("Seeking NOW! (Running behind server!)");
+						setPlayPauseState();
+					} else {
+						console.log("Seeking in ", delta);
+						setPlayPauseStateTimerId = window.setTimeout(setPlayPauseState, delta*1000.0)
+					}
+					
+					// Seek, as the playhead may have changed
+					console.log("Seeking!", serverState.video_time)
+					video.currentTime = serverState.video_time;
+					
+					// Note that we've seen the state change
+					clientState.state_change_time = serverState.state_change_time;
+					// XXX: Race condition: the waiting event listener may not have
+					// responded by the time the state next gets sent to the server...
+				}
+			}
+			
+			// Periodically poll the server
+			$(document).ready(function() {
+				window.setInterval(function() {
+					pollServer();
+				}, POLL_INTERVAL);
+				
+				var video = document.getElementById("video");
+				
+				// Update ready state of video player
+				video.addEventListener("canplaythrough", function(e) {
+					clientState.ready = true;
+					$("#ready-status").text("Ready");
+					pollServer();
+				}, true);
+				
+				for (var stallEvent of ["waiting", "loadstart", "seeking"]) {
+					video.addEventListener(stallEvent, function(e) {
+						clientState.ready = false;
+						$("#ready-status").text("Lodaing...");
+						pollServer();
+					}, true);
+				}
+				
+				// Seek the video
+				function seek(time) {
+					if (time === undefined) {
+						time = video.currentTime;
+					}
+					pollServer({
+						command: "seek",
+						time: time,
+					});
+				}
+				var play = seek;
+				// Pause the video
+				function pause() {
+					pollServer({
+						command: "pause",
+						time: video.currentTime,
+					});
+				}
+				
+				function togglePlayPause() {
+					if (video.paused) {
+						play();
+					} else {
+						pause();
+					}
+				}
+				
+				// Keyboard shortcuts
+				$(document).keypress(function(event) {
+					switch (event.keyCode) {
+						case 32:
+							console.log("space");
+							togglePlayPause();
+							event.preventDefault();
+							break;
+						default:
+							console.log("Something else...");
+							break;
+					}
+				});
+				
+				// "Buttons"
+				$("#play-btn").click(function() {
+					play();
+				});
+				
+				$("#seekp-btn").click(function() {
+					seek(video.currentTime + 30);
+				});
+				
+				$("#seekm-btn").click(function() {
+					seek(video.currentTime - 30);
+				});
+				
+				$("#pause-btn").click(function() {
+					pause();
+				});
+			});
+			
+			
+			console.log($("video"));
+		</script>
+	</body>
+</html>
