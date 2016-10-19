@@ -1,0 +1,139 @@
+.video-container {
+	display: table;
+	width: 100%;
+	position: relative;
+}
+
+.video-container video {
+	display: block;
+	width: 100%;
+	height: auto;
+	background-color: black;
+}
+
+.video-container .spinner {
+	position: absolute;
+	
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	margin: auto;
+	width: 13em;
+	height: 13em;
+	
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+}
+
+.video-container .control-bar {
+	position: absolute;
+	width: 100%;
+	bottom: 0;
+	left: 0;
+	
+	padding: 0.2em;
+	
+	background-color: rgba(64,64,64, 0.7);
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+}
+
+.video-container .control-bar .btn {
+	background: rgba(64,64,64, 0.7);
+}
+.video-container .control-bar .seek-bar {
+	flex-grow: 1;
+	margin: 0.2em;
+}
+.video-container .control-bar .seek-bar .progress {
+	margin: 0;
+	cursor: pointer;
+}
+.video-container .control-bar .seek-bar .progress .progress-bar-white {
+	background-color: rgb(200, 200, 200);
+}
+.video-container .control-bar .time {
+	padding-left: 0.7em;
+	padding-right: 0.7em;
+	min-width: 5em;
+}
+.video-container .control-bar .cur-time {
+	text-align: right;
+}
+.video-container .control-bar .end-time {
+	text-align: left;
+}
+
+.video-container .viewer-count {
+	position: absolute;
+	top: 0;
+	right: 0;
+	
+	padding: 0.5em;
+	padding-left: 0.7em;
+	border-bottom-left-radius: 0.5em;
+	
+	background-color: rgba(64,64,64, 0.7);
+}
+
+.video-container .viewer-count .counter {
+	font-weight: bold;
+	color: white;
+}
+
+.spin-cube {
+	perspective: 800px;
+	perspective-origin: 50% -200px;
+	
+	padding: 20px;
+	
+	display: inline-block;
+}
+.spin-cube .cube {
+	position: relative;
+	width: 70px;
+	height: 70px;
+	transform-style: preserve-3d;
+	animation: spin-cube 3s infinite linear;
+}
+.spin-cube .cube div {
+	position: absolute;
+	width: 70px;
+	height: 70px;
+	
+	background-color: rgba(64, 64, 64, 0.7);
+	box-shadow: 0px 0px 35px 0px rgba(255,255,255,0.75);
+	border-color: white;
+	border-width: 1px;
+	border-style: solid;
+}
+.spin-cube .cube .back {
+	transform: translateZ(-35px) rotateY(180deg);
+}
+.spin-cube .cube .right {
+	transform: rotateY(-270deg) translateX(35px);
+	transform-origin: top right;
+}
+.spin-cube .cube .left {
+	transform: rotateY(270deg) translateX(-35px);
+	transform-origin: center left;
+}
+.spin-cube .cube .top {
+	transform: rotateX(-90deg) translateY(-35px);
+	transform-origin: top center;
+}
+.spin-cube .cube .bottom {
+	transform: rotateX(90deg) translateY(35px);
+	transform-origin: bottom center;
+}
+.spin-cube .cube .front {
+	transform: translateZ(35px);
+}
+@keyframes spin-cube {
+	from { transform: rotateY(0); }
+	to   { transform: rotateY(360deg); }
+}
