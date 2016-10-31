@@ -227,13 +227,16 @@ let Spinner = React.createClass({
  *  - busy: Boolean indicating if the player is currently waiting for
  *    something to load/happen.
  *  - otherViewers: The number of other people watching the stream.
+ *  - uiTimedOut: Boolean indicating if the UI has timed out
+ *  - viewerTimedOut: Boolean indicating if the viewer count box has timed out
+ *    (if false, the count will be shown regardless of uiTimedOut)
  */
 let VideoPlayer = React.createClass({
 	getDefaultProps() {
 		return {
 			// XXX: TODO: Choose something based on current URL!
 			serverURL: "./test.php",
-			uiTimeoutDelay: 1.0,
+			uiTimeoutDelay: 5.0,
 		};
 	},
 	
@@ -247,12 +250,14 @@ let VideoPlayer = React.createClass({
 			busy: false,
 			otherViewers: 0,
 			uiTimedOut: false,
+			viewerTimedOut: false,
 		};
 	},
 	
 	render() {
 		// Hide the user-interface while it is timed out.
 		const hideUI = this.state.uiTimedOut && this.state.playing;
+		const hideViewerCount = hideUI && this.state.viewerTimedOut;
 		
 		return <figure ref={(container) => {this.container = container}} className="video-player">
 			<video
@@ -273,7 +278,7 @@ let VideoPlayer = React.createClass({
 				onSeek={this.handleSeek} 
 				onFullscreen={this.handleFullscreenClicked} />
 			<ViewerCountBox
-				hidden={hideUI}
+				hidden={hideViewerCount}
 				otherViewers={this.state.otherViewers} />
 			{this.state.busy ? <Spinner /> : undefined}
 		</figure>;
@@ -380,12 +385,31 @@ let VideoPlayer = React.createClass({
 		}, this.props.uiTimeoutDelay * 1000.0);
 	},
 	
+	/**
+	 * Called whenever the viewer count changes, used to force the viewer count
+	 * box to be shown at times when it changes.
+	 */
+	resetViewerTimeout() {
+		// Note the UI is not timed out
+		this.setState({viewerTimedOut: false});
+		
+		// Set up a timer to time out the UI after a suitable delay
+		if (this.resetViewerTimeoutId !== null) {
+			window.clearTimeout(this.resetViewerTimeoutId);
+		}
+		this.resetViewerTimeoutId = window.setTimeout(() => {
+			this.resetViewerTimeoutId = null;
+			this.setState({viewerTimedOut: true});
+		}, this.props.uiTimeoutDelay * 1000.0);
+	},
+	
 	componentDidMount() {
 		// Set up the video sync controller
 		this.sync = new VideoSynchroniser(this.props.serverURL);
 		this.sync.start();
 		this.sync.onViewersChanged = (number) => {
 			this.setState({otherViewers: number - 1});
+			this.resetViewerTimeout();
 		};
 		this.sync.onVideoURLChanged = (url) => {
 			this.setState({videoURL: url});
@@ -463,6 +487,11 @@ let VideoPlayer = React.createClass({
 		// A timeout set up to notice when user interaction stops and hides the UI
 		this.resetUITimeoutId = null;
 		this.resetUITimeout();
+		
+		// A timeout set up to notice when the viewer count hasn't changed in a
+		// while
+		this.resetViewerTimeoutId = null;
+		this.resetViewerTimeout();
 	},
 	
 	componentWillUnmount() {
@@ -477,6 +506,11 @@ let VideoPlayer = React.createClass({
 		
 		if (this.resetUITimeoutId !== null) {
 			window.clearTimeout(this.resetUITimeoutId);
+			this.resetUITimeoutId = null;
+		}
+		if (this.resetViewerTimeout !== null) {
+			window.clearTimeout(this.resetViewerTimeout);
+			this.resetViewerTimeout = null;
 		}
 	},
 });
