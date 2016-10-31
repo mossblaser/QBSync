@@ -19,7 +19,7 @@ flock($state_file, LOCK_EX);
 if (!file_exists($state_file_name) || filesize($state_file_name) <= 2) {
 	file_put_contents($state_file_name, json_encode(array(
 		// URL of video to play
-		"video_url" => "http://example.com",
+		"video_url" => "./example.mp4",
 		
 		// Should playback be triggered when all clients are ready?
 		"video_play_on_all_ready" => false,

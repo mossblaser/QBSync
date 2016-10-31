@@ -1,17 +1,17 @@
-.video-container {
+.video-player {
 	display: table;
 	width: 100%;
 	position: relative;
 }
 
-.video-container video {
+.video-player video {
 	display: block;
 	width: 100%;
 	height: auto;
 	background-color: black;
 }
 
-.video-container .spinner {
+.video-player .spinner {
 	position: absolute;
 	
 	top: 0;
@@ -28,12 +28,14 @@
 	justify-content: center;
 }
 
-.video-container .control-bar {
+.video-player .media-control-bar {
 	position: absolute;
 	width: 100%;
 	bottom: 0;
 	left: 0;
-	
+}
+
+.media-control-bar {
 	padding: 0.2em;
 	
 	background-color: rgba(64,64,64, 0.7);
@@ -42,37 +44,39 @@
 	align-items: center;
 }
 
-.video-container .control-bar .btn {
+.media-control-bar .btn {
 	background: rgba(64,64,64, 0.7);
 }
-.video-container .control-bar .seek-bar {
+.media-control-bar .seek-bar {
 	flex-grow: 1;
 	margin: 0.2em;
 }
-.video-container .control-bar .seek-bar .progress {
+.media-control-bar .seek-bar .progress {
 	margin: 0;
 	cursor: pointer;
 }
-.video-container .control-bar .seek-bar .progress .progress-bar-white {
+.progress-bar-white {
 	background-color: rgb(200, 200, 200);
 }
-.video-container .control-bar .time {
+.media-control-bar .time {
 	padding-left: 0.7em;
 	padding-right: 0.7em;
 	min-width: 5em;
 }
-.video-container .control-bar .cur-time {
+.media-control-bar .cur-time {
 	text-align: right;
 }
-.video-container .control-bar .end-time {
+.media-control-bar .end-time {
 	text-align: left;
 }
 
-.video-container .viewer-count {
+.video-player .viewer-count {
 	position: absolute;
 	top: 0;
 	right: 0;
-	
+}
+
+.viewer-count {
 	padding: 0.5em;
 	padding-left: 0.7em;
 	border-bottom-left-radius: 0.5em;
@@ -80,7 +84,7 @@
 	background-color: rgba(64,64,64, 0.7);
 }
 
-.video-container .viewer-count .counter {
+.viewer-count .counter {
 	font-weight: bold;
 	color: white;
 }

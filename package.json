@@ -1,0 +1,24 @@
+{
+  "name": "qbsync",
+  "version": "0.1.0",
+  "description": "A synchronised video player for lonely hearts",
+  "main": "js/qbsync.jsx",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Jonathan Heathcote",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "react": "^15.3.2",
+    "react-dom": "^15.3.2",
+    "react-measure": "^1.2.0"
+  },
+  "devDependencies": {
+    "babel-core": "^6.17.0",
+    "babel-loader": "^6.2.5",
+    "babel-preset-es2015": "^6.16.0",
+    "babel-preset-react": "^6.16.0",
+    "webpack": "^1.13.2",
+    "webpack-dev-server": "^1.16.2"
+  }
+}
