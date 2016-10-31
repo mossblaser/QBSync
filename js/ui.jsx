@@ -373,6 +373,11 @@ let VideoPlayer = React.createClass({
 					}
 					event.preventDefault();
 					break;
+				
+				case 102: // 'f': Full-screen
+					this.handleFullscreenClicked();
+					event.preventDefault();
+					break;
 			}
 		});
 		
