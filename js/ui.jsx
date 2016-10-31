@@ -114,6 +114,7 @@ let MediaTime = React.createClass({
  *  - bufferedTime: Point after currentTime to which the player has buffered in
  *    seconds.
  *  - duration: Video duration in seconds.
+ *  - hidden: Boolean: Should the bar be hidden?
  *
  * Callbacks provided as properties:
  *  - onSeek: Called with (seconds:float, mouseReleased:bool) when seeking.
@@ -125,6 +126,7 @@ let MediaControlBar = React.createClass({
 	getDefaultProps() {
 		return {
 			playing: true,
+			hidden: false,
 		}
 	},
 	
@@ -132,7 +134,11 @@ let MediaControlBar = React.createClass({
 		const playPauseIcon = this.props.playing ? "pause" : "play";
 		const playPauseCallback = this.props.playing ? this.props.onPause: this.props.onPlay;
 		
-		return <div className="media-control-bar">
+		const className = this.props.hidden
+			? "media-control-bar hidden"
+			: "media-control-bar";
+		
+		return <div className={className}>
 			<MediaControlButton
 				icon={playPauseIcon}
 				onClick={playPauseCallback} />
@@ -151,10 +157,17 @@ let MediaControlBar = React.createClass({
 /**
  * A box which states how many other people are viewing a video. Number set by
  * otherViewers property.
+ *
+ * Properties:
+ *  - otherViewers: Count of other people watching
+ *  - hidden: Boolean: Should the bar be hidden?
  */
 let ViewerCountBox = React.createClass({
 	getDefaultProps() {
-		return {otherViewers: 0};
+		return {
+			otherViewers: 0,
+			hidden: false,
+		};
 	},
 	
 	render() {
@@ -168,7 +181,11 @@ let ViewerCountBox = React.createClass({
 			message = <span>No other viewers</span>;
 		}
 		
-		return <div className="viewer-count">
+		const className = this.props.hidden
+			? "viewer-count hidden"
+			: "viewer-count";
+		
+		return <div className={className}>
 			{message}
 		</div>;
 	},
@@ -198,6 +215,7 @@ let Spinner = React.createClass({
  *
  * Properties:
  *  - serverURL: URL of the server
+ *  - uiTimeoutDelay: Timeout before hiding the UI, in seconds
  *
  * State:
  *  - videoURL: The URL of the video
@@ -215,6 +233,7 @@ let VideoPlayer = React.createClass({
 		return {
 			// XXX: TODO: Choose something based on current URL!
 			serverURL: "./test.php",
+			uiTimeoutDelay: 1.0,
 		};
 	},
 	
@@ -227,10 +246,14 @@ let VideoPlayer = React.createClass({
 			duration: 0.0,
 			busy: false,
 			otherViewers: 0,
+			uiTimedOut: false,
 		};
 	},
 	
 	render() {
+		// Hide the user-interface while it is timed out.
+		const hideUI = this.state.uiTimedOut && this.state.playing;
+		
 		return <figure ref={(container) => {this.container = container}} className="video-player">
 			<video
 					ref={(video) => {this.video = video}}
@@ -240,6 +263,7 @@ let VideoPlayer = React.createClass({
 				want to try using a browser such as Firefox or Chrome.</p>
 			</video>
 			<MediaControlBar
+				hidden={hideUI}
 				playing={this.state.playing}
 				currentTime={this.state.currentTime}
 				bufferedTime={this.state.bufferedTime}
@@ -247,9 +271,10 @@ let VideoPlayer = React.createClass({
 				onPlay={this.handlePlayClicked} 
 				onPause={this.handlePauseClicked} 
 				onSeek={this.handleSeek} 
-				onFullscreen={this.handleFullscreenClicked}
-				/>
-			<ViewerCountBox otherViewers={this.state.otherViewers} />
+				onFullscreen={this.handleFullscreenClicked} />
+			<ViewerCountBox
+				hidden={hideUI}
+				otherViewers={this.state.otherViewers} />
 			{this.state.busy ? <Spinner /> : undefined}
 		</figure>;
 	},
@@ -329,6 +354,24 @@ let VideoPlayer = React.createClass({
 		this.setState({currentTime, bufferedTime});
 	},
 	
+	/**
+	 * Called whenever some user interaction indicates that the user may want to
+	 * use the user interface. (Re-)sets up a timeout which hides the UI.
+	 */
+	resetUITimeout() {
+		// Note the UI is not timed out
+		this.setState({uiTimedOut: false});
+		
+		// Set up a timer to time out the UI after a suitable delay
+		if (this.resetUITimeoutId !== null) {
+			window.clearTimeout(this.resetUITimeoutId);
+		}
+		this.resetUITimeoutId = window.setTimeout(() => {
+			this.resetUITimeoutId = null;
+			this.setState({uiTimedOut: true});
+		}, this.props.uiTimeoutDelay * 1000.0);
+	},
+	
 	componentDidMount() {
 		// Set up the video sync controller
 		this.sync = new VideoSynchroniser(this.props.serverURL);
@@ -364,6 +407,9 @@ let VideoPlayer = React.createClass({
 		
 		// Set up key bindings
 		document.addEventListener("keypress", (event) => {
+			// Make sure UI is kept visible while keys pressed
+			this.resetUITimeout();
+			
 			switch (event.keyCode) {
 				case 32: // Space: Play/pause toggle
 					if (this.state.playing) {
@@ -379,6 +425,11 @@ let VideoPlayer = React.createClass({
 					event.preventDefault();
 					break;
 			}
+		});
+		
+		document.addEventListener("mousemove", (event) => {
+			// Make sure UI is kept visible while mouse moving
+			this.resetUITimeout();
 		});
 		
 		// Setup video state change notifications
@@ -398,7 +449,12 @@ let VideoPlayer = React.createClass({
 		// Ensures background buffering while paused is reported
 		this.handleTimeUpdateIntervalId = 
 			window.setInterval(this.handleTimeUpdate, 1000);
+		
+		// A timeout set up to notice when user interaction stops and hides the UI
+		this.resetUITimeoutId = null;
+		this.resetUITimeout();
 	},
+	
 	componentWillUnmount() {
 		this.sync.stop();
 		
@@ -408,6 +464,10 @@ let VideoPlayer = React.createClass({
 			this.handleTimeUpdate);
 		
 		window.clearInterval(this.handleTimeUpdateIntervalId);
+		
+		if (this.resetUITimeoutId !== null) {
+			window.clearTimeout(this.resetUITimeoutId);
+		}
 	},
 });
 
