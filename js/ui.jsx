@@ -354,6 +354,14 @@ let VideoPlayer = React.createClass({
 		this.setState({currentTime, bufferedTime});
 	},
 	
+	togglePlayPause() {
+		if (this.state.playing) {
+			this.sync.pause(this.video.currentTime);
+		} else {
+			this.sync.play(this.video.currentTime);
+		}
+	},
+	
 	/**
 	 * Called whenever some user interaction indicates that the user may want to
 	 * use the user interface. (Re-)sets up a timeout which hides the UI.
@@ -412,11 +420,7 @@ let VideoPlayer = React.createClass({
 			
 			switch (event.keyCode) {
 				case 32: // Space: Play/pause toggle
-					if (this.state.playing) {
-						this.sync.pause(this.video.currentTime);
-					} else {
-						this.sync.play(this.video.currentTime);
-					}
+					this.togglePlayPause();
 					event.preventDefault();
 					break;
 				
@@ -427,8 +431,14 @@ let VideoPlayer = React.createClass({
 			}
 		});
 		
+		// Make sure UI is kept visible while mouse moving
 		document.addEventListener("mousemove", (event) => {
-			// Make sure UI is kept visible while mouse moving
+			this.resetUITimeout();
+		});
+		
+		// Make clicking on the video toggle play/pause
+		this.video.addEventListener("click", (event) => {
+			this.togglePlayPause();
 			this.resetUITimeout();
 		});
 		
