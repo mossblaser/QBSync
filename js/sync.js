@@ -39,6 +39,7 @@ function countObjectChildren(obj) {
  * - onReady(): Fired when playback may proceed normally.
  * - onViewersChanged(number): Fired when number of viewers changes.
  * - onVideoURLChanged(url): Fired when the video URL changes.
+ * - onFatalError(error): Called on a fatal error.
  */
 class VideoSynchroniser {
 	constructor(serverURL) {
@@ -146,6 +147,13 @@ class VideoSynchroniser {
 	 * polling command.
 	 */
 	_handleServerMessage(data, roundTrip) {
+		// Immediately stop if an error has ocurred
+		if (data.error) {
+			this.onFatalError(data.error);
+			console.log(data.error);
+			return;
+		}
+		
 		// Update our copy of the server's state
 		if (this._serverState.time >= data.time) {
 			console.log("WARNING: Got a server response out-of-order. Discarding.");

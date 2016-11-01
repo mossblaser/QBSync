@@ -218,6 +218,7 @@ let Spinner = React.createClass({
  *  - uiTimeoutDelay: Timeout before hiding the UI, in seconds
  *
  * State:
+ *  - fatalError: If not null, contains an error message.
  *  - videoURL: The URL of the video
  *  - playing: Boolean indicating if playback is ocurring
  *  - currentTime: Video position in seconds.
@@ -234,14 +235,14 @@ let Spinner = React.createClass({
 let VideoPlayer = React.createClass({
 	getDefaultProps() {
 		return {
-			// XXX: TODO: Choose something based on current URL!
-			serverURL: "./test.php",
+			serverURL: "sync.php",
 			uiTimeoutDelay: 5.0,
 		};
 	},
 	
 	getInitialState() {
 		return {
+			fatalError: null,
 			videoURL: null,
 			playing: false,
 			currentTime: 0.0,
@@ -255,6 +256,13 @@ let VideoPlayer = React.createClass({
 	},
 	
 	render() {
+		// Give up if an error has ocurred.
+		if (this.state.fatalError) {
+			return <div className="alert alert-danger" role="alert">
+				<strong>Error:</strong> {this.state.fatalError}
+			</div>;
+		}
+		
 		// Hide the user-interface while it is timed out.
 		const hideUI = this.state.uiTimedOut && this.state.playing;
 		const hideViewerCount = hideUI && this.state.viewerTimedOut;
@@ -435,6 +443,9 @@ let VideoPlayer = React.createClass({
 		};
 		this.sync.onReady = () => {
 			this.setState({busy: false});
+		};
+		this.sync.onFatalError = (error) => {
+			this.setState({fatalError: error});
 		};
 		
 		// Set up key bindings

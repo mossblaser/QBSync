@@ -1,6 +1,6 @@
 <?php
 
-$state_file_name = "./state.json";
+$state_file_name = "v/" . $_GET["id"];
 
 // Time-out clients who haven't connected in a while
 $MAX_POLL_INTERVAL = 5.0;
@@ -12,30 +12,15 @@ $PLAY_START_SLACK = 1.0;
 // Load the state
 ////////////////////////////////////////////////////////////////////////////////
 
+// Lock the file
 $state_file = fopen($state_file_name, "r");
 flock($state_file, LOCK_EX);
 
-// Set up initial default state if no state file exists or its empty
+// Check file exists
 if (!file_exists($state_file_name) || filesize($state_file_name) <= 2) {
-	file_put_contents($state_file_name, json_encode(array(
-		// URL of video to play
-		"video_url" => "./example.mp4",
-		
-		// Should playback be triggered when all clients are ready?
-		"video_play_on_all_ready" => false,
-		
-		// Should the video be playing right now?
-		"video_playing" => false,
-		
-		// What time should the video be seeked to at state_change_time?
-		"video_time" => 0.0,
-		
-		// What time did the state last change
-		"state_change_time" => 0.0,
-		
-		// Client states (array from client ID to state)
-		"clients" => array(),
-	)));
+	flock($state_file, LOCK_UN);
+	fclose($state_file);
+	die('{"error": "Unknown video ID."}');
 }
 
 // Read back state

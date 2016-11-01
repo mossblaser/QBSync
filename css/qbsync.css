@@ -150,3 +150,26 @@ body {
 	from { transform: rotateY(0); }
 	to   { transform: rotateY(360deg); }
 }
+
+.url-bar {
+	margin-top: 3cm;
+	margin-bottom: 1cm;
+	
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+}
+
+.url-bar input {
+	flex-grow: 1;
+}
+
+.url-bar .logo {
+	margin-right: 1.5em;
+}
+
+.url-bar .label {
+	white-space: nowrap;
+	font-size: 100%;
+}
