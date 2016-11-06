@@ -16,13 +16,6 @@ $PLAY_START_SLACK = 1.0;
 $state_file = fopen($state_file_name, "r");
 flock($state_file, LOCK_EX);
 
-// Check file exists
-if (!file_exists($state_file_name) || filesize($state_file_name) <= 2) {
-	flock($state_file, LOCK_UN);
-	fclose($state_file);
-	die('{"error": "Unknown video ID."}');
-}
-
 // Read back state
 $server_state = json_decode(file_get_contents($state_file_name), true);
 
